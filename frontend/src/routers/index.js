@@ -1,8 +1,10 @@
-
-import { Navigate, createBrowserRouter } from "react-router-dom";
 import Home from "../pages/Home"
 
-const privateRoutes = []
-const publicRoutes = []
+const privateRoutes = [
+   
+]
+const publicRoutes = [
+     {path: '/', component: Home}
+]
 
 export {publicRoutes, privateRoutes}
