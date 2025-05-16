@@ -1,17 +1,16 @@
-import { useState } from 'react'
-import './App.css'
+
 import { BrowserRouter as Router, Routes, Route} from 'react-router-dom'
 import { publicRoutes } from './routers'
+import './index.css';
 
 function App() {
-  const [count, setCount] = useState(0)
 
   return (
     <Router>
       <div className='App'>
          <Routes>
               {publicRoutes.map((route, index)=> {
-                  const Page = route.componet;
+                  const Page = route.component;
                   return <Route key={index} path={route.path} element={<Page/>}/>;
               })}
          </Routes>
