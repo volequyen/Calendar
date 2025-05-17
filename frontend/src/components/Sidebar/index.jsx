@@ -32,10 +32,10 @@ const Sidebar = () => {
 
   return (
     <div className="min-w-xs p-4 bg-emerald-50 space-y-4 h-screen">
-    <button className="flex items-center px-8 py-4 bg-white border border-gray-300 rounded-2xl shadow-lg hover:bg-emerald-100 hover:cursor-pointer transition">
+    {/* <button className="flex items-center px-8 py-4 bg-white border border-gray-300 rounded-2xl shadow-lg hover:bg-emerald-100 hover:cursor-pointer transition">
       <IoMdAdd />
       <span className="font-medium">Tạo</span>
-    </button>
+    </button> */}
       <div className="flex justify-between items-center">
         <div className="flex space-x-2">
           <select
@@ -61,16 +61,6 @@ const Sidebar = () => {
             ))}
           </select>
         </div>
-        {/* <button
-          onClick={() => {
-            setMonth(currentDate.month());
-            setYear(currentDate.year());
-            setSelectedDate(currentDate.date());
-          }}
-          className="text-sm text-blue-600 hover:underline"
-        >
-          Hôm nay
-        </button> */}
       </div>
 
       <div className="grid grid-cols-7 text-center text-sm font-medium text-gray-500">
