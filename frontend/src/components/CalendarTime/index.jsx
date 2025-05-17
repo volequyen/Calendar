@@ -3,38 +3,14 @@ import { format, isToday, isSameDay, isBefore, isEqual } from 'date-fns';
 import ConflictResolutionModal from '../ConflictResolutionModal';
 import CalendarTitleModal from '../CalendarTitleModal';
 
-const mockAppointments = [
-  {
-    id: 1,
-    name: "Team Meeting",
-    location: "Conference Room A",
-    start_time: new Date(2025, 4, 20, 10, 0),
-    end_time: new Date(2025, 4, 20, 11, 0),
-    user_id: 1,
-    is_group_meeting: true,
-    reminders: ['15 minutes before'],
-    invited_users: ['user1@example.com', 'user2@example.com']
-  },
-  {
-    id: 2,
-    name: "Client Call",
-    location: "Zoom",
-    start_time: new Date(2025, 4, 21, 14, 0),
-    end_time: new Date(2025, 4, 21, 15, 0),
-    user_id: 1,
-    is_group_meeting: false,
-    reminders: ['30 minutes before'],
-    invited_users: []
-  }
-];
-
-const DateTimePicker = ({ open, onClose, onSelect, preselectedDate, preselectedStartTime }) => {   
+const DateTimePicker = ({ open, onClose, onSelect, preselectedDate, preselectedStartTime, events = [] }) => {   
   const [selectedDate, setSelectedDate] = useState(null);
   const [customStartTime, setCustomStartTime] = useState('');
   const [customEndTime, setCustomEndTime] = useState('');
   const [step, setStep] = useState(open ? 'date' : null);
   const [error, setError] = useState("");
-  const [appointments, setAppointments] = useState(mockAppointments);
+  // Thay đổi khởi tạo appointments để sử dụng events từ props thay vì mockAppointments
+  const [appointments, setAppointments] = useState([]);
   const [appointmentDetails, setAppointmentDetails] = useState({
     name: "",
     location: "",
@@ -48,8 +24,18 @@ const DateTimePicker = ({ open, onClose, onSelect, preselectedDate, preselectedS
     newAppointment: null,
     isSameGroup: false
   });
+  // Thêm biến để theo dõi cuộc hẹn đang bị thay thế
+  const [appointmentBeingReplaced, setAppointmentBeingReplaced] = useState(null);
   const isConfirming = useRef(false);
 
+  // Cập nhật appointments từ events props mỗi khi events thay đổi
+  useEffect(() => {
+    console.log("Events received in DateTimePicker:", events);
+    if (events && events.length > 0) {
+      setAppointments(events);
+    }
+  }, [events]);
+  
   // Khởi tạo từ preselectedDate và preselectedStartTime
   useEffect(() => {
     if (open) {
@@ -100,6 +86,8 @@ const DateTimePicker = ({ open, onClose, onSelect, preselectedDate, preselectedS
       newAppointment: null,
       isSameGroup: false
     });
+    // Reset appointmentBeingReplaced
+    setAppointmentBeingReplaced(null);
     if (onClose) onClose();
   }, [onClose]);
 
@@ -147,14 +135,38 @@ const DateTimePicker = ({ open, onClose, onSelect, preselectedDate, preselectedS
     return date;
   };
 
+  // Sửa đổi hàm hasConflict để bỏ qua sự kiện đang được thay thế
   const hasConflict = (startTime, endTime) => {
+    console.log("Checking conflicts for time:", startTime, "to", endTime);
+    console.log("Current appointments:", appointments);
+    console.log("Currently replacing appointment:", appointmentBeingReplaced);
+    
     const conflict = appointments.find(appointment => {
-      return (
+      // Nếu đây là sự kiện đang được thay thế, bỏ qua kiểm tra xung đột
+      if (appointmentBeingReplaced && appointment.id === appointmentBeingReplaced.id) {
+        console.log("Skipping conflict check for appointment being replaced:", appointment.id);
+        return false;
+      }
+      
+      // Kiểm tra nếu appointment.start_time và appointment.end_time không phải là đối tượng Date
+      if (!(appointment.start_time instanceof Date) || !(appointment.end_time instanceof Date)) {
+        console.warn("Found invalid appointment dates:", appointment);
+        return false;
+      }
+      
+      const hasOverlap = (
         (startTime >= appointment.start_time && startTime < appointment.end_time) ||
         (endTime > appointment.start_time && endTime <= appointment.end_time) ||
         (startTime <= appointment.start_time && endTime >= appointment.end_time)
       );
+      
+      if (hasOverlap) {
+        console.log("Found conflict with appointment:", appointment);
+      }
+      
+      return hasOverlap;
     });
+    
     return conflict || null;
   };
 
@@ -208,9 +220,38 @@ const DateTimePicker = ({ open, onClose, onSelect, preselectedDate, preselectedS
       return;
     }
 
-    setStep('details');
-  }, [selectedDate, customStartTime, customEndTime]);
+    // Kiểm tra xung đột lịch ngay sau khi xác thực thời gian
+    const conflictAppointment = hasConflict(startDateTime, endDateTime);
+    
+    if (conflictAppointment) {
+      console.log("Conflict detected! Opening ConflictResolutionModal...");
+      // Tạo một đối tượng cuộc hẹn tạm thời để sử dụng trong hộp thoại xung đột
+      const tempAppointment = {
+        id: Date.now(), // Sử dụng timestamp để đảm bảo ID là duy nhất
+        name: "New Appointment", // Tên tạm thời
+        location: "Office",
+        start_time: startDateTime,
+        end_time: endDateTime,
+        user_id: 1,
+        is_group_meeting: false,
+        reminders: [],
+        invited_users: []
+      };
+      
+      setConflictResolution({
+        show: true,
+        conflictAppointment,
+        newAppointment: tempAppointment,
+        isSameGroup: false // Sẽ cập nhật giá trị này sau khi biết chi tiết cuộc hẹn
+      });
+      return;
+    }
 
+    // Nếu không có xung đột, tiếp tục nhập chi tiết cuộc hẹn
+    setStep('details');
+  }, [selectedDate, customStartTime, customEndTime, appointments, appointmentBeingReplaced]);
+
+  // Sửa hàm handleDetailsConfirm để xem xét appointmentBeingReplaced
   const handleDetailsConfirm = useCallback(() => {
     if (isConfirming.current) return;
     isConfirming.current = true;
@@ -225,7 +266,7 @@ const DateTimePicker = ({ open, onClose, onSelect, preselectedDate, preselectedS
     const endDateTime = parseDateTime(selectedDate, customEndTime);
 
     const newAppointment = {
-      id: appointments.length + 1,
+      id: appointmentBeingReplaced ? appointmentBeingReplaced.id : Date.now(),
       name: appointmentDetails.name.trim(),
       location: appointmentDetails.location.trim() || "Office",
       start_time: startDateTime,
@@ -239,6 +280,8 @@ const DateTimePicker = ({ open, onClose, onSelect, preselectedDate, preselectedS
         .filter(email => email)
     };
 
+    // Kiểm tra lại xung đột (phòng trường hợp có lịch mới được thêm vào trong thời gian người dùng điền form)
+    // Nếu đang thay thế một cuộc hẹn, bỏ qua kiểm tra xung đột cho cuộc hẹn đó
     const conflictAppointment = hasConflict(startDateTime, endDateTime);
 
     if (conflictAppointment) {
@@ -253,29 +296,60 @@ const DateTimePicker = ({ open, onClose, onSelect, preselectedDate, preselectedS
     }
 
     console.log('New Appointment Created:', newAppointment);
-    setAppointments(prev => [...prev, newAppointment]);
+    
+    // Nếu đang thay thế một cuộc hẹn, loại bỏ cuộc hẹn cũ trước khi thêm cuộc hẹn mới
+    if (appointmentBeingReplaced) {
+      setAppointments(prev => 
+        [...prev.filter(app => app.id !== appointmentBeingReplaced.id), newAppointment]
+      );
+      console.log(`Replaced appointment ${appointmentBeingReplaced.id} with ${newAppointment.id}`);
+    } else {
+      setAppointments(prev => [...prev, newAppointment]);
+    }
+    
     if (onSelect) onSelect(newAppointment);
-    showSuccess("Appointment scheduled successfully!");
+    showSuccess(appointmentBeingReplaced ? 
+      "Appointment replaced successfully!" : 
+      "Appointment scheduled successfully!"
+    );
     reset();
     isConfirming.current = false;
-  }, [appointmentDetails, selectedDate, customStartTime, customEndTime, appointments, onSelect, reset, showSuccess]);
+  }, [appointmentDetails, selectedDate, customStartTime, customEndTime, appointments, appointmentBeingReplaced, onSelect, reset, showSuccess]);
 
+  // Sửa đổi hàm handleReplaceAppointment để đặt appointmentBeingReplaced
   const handleReplaceAppointment = useCallback(() => {
     const { conflictAppointment, newAppointment } = conflictResolution;
     
-    const updatedAppointments = appointments.filter(
-      app => app.id !== conflictAppointment.id
-    );
+    // Đặt cuộc hẹn đang được thay thế
+    setAppointmentBeingReplaced(conflictAppointment);
+    console.log("Setting appointment being replaced:", conflictAppointment);
     
-    setAppointments([...updatedAppointments, newAppointment]);
-    if (onSelect) onSelect(newAppointment);
-    showSuccess("Appointment replaced successfully!");
-    
-    reset();
-  }, [conflictResolution, appointments, onSelect, showSuccess, reset]);
+    // Kiểm tra xem newAppointment đã có đầy đủ thông tin chưa
+    if (!newAppointment.name || newAppointment.name === "New Appointment") {
+      // Nếu chưa có thông tin chi tiết, chuyển sang bước nhập chi tiết
+      setStep('details');
+      setConflictResolution(prev => ({ ...prev, show: false }));
+    } else {
+      // Nếu đã có thông tin đầy đủ, tiến hành thay thế cuộc hẹn
+      setAppointments(prev => 
+        [...prev.filter(app => app.id !== conflictAppointment.id), 
+        {...newAppointment, id: conflictAppointment.id}]
+      );
+      if (onSelect) onSelect(newAppointment);
+      showSuccess("Appointment replaced successfully!");
+      reset(); // Reset sẽ xóa appointmentBeingReplaced
+    }
+  }, [conflictResolution, onSelect, showSuccess, reset]);
 
   const handleJoinGroupMeeting = useCallback(() => {
     const { conflictAppointment, newAppointment } = conflictResolution;
+    
+    // Nếu chưa nhập chi tiết cuộc hẹn, chuyển đến bước nhập chi tiết trước
+    if (!newAppointment.name || newAppointment.name === "New Appointment") {
+      setStep('details');
+      setConflictResolution(prev => ({ ...prev, show: false }));
+      return;
+    }
     
     const updatedAppointments = appointments.map(app => {
       if (app.id === conflictAppointment.id) {
@@ -507,6 +581,13 @@ const DateTimePicker = ({ open, onClose, onSelect, preselectedDate, preselectedS
       </div>
     );
   };
+
+  // Hiển thị debug thông tin về appointmentBeingReplaced
+  useEffect(() => {
+    if (appointmentBeingReplaced) {
+      console.log("Currently replacing appointment:", appointmentBeingReplaced);
+    }
+  }, [appointmentBeingReplaced]);
 
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6">
