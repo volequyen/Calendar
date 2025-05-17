@@ -2,9 +2,6 @@ import React from 'react';
 import DateTimePicker from '../../components/CalendarTime';
 
 const Home = () => {
-  const handleSelect = (selection) => {
-    console.log('Đã chọn:', selection);
-  };
 
   return (
     <div className="max-w-3xl mx-auto p-5 font-sans">
@@ -15,7 +12,6 @@ const Home = () => {
         <p className="text-gray-600 mb-5">Vui lòng chọn thời gian phù hợp để đặt lịch hẹn của bạn</p>
         
         <DateTimePicker 
-          onSelect={handleSelect}
         />
       </div>
     </div>
