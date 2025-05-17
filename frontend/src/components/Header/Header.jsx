@@ -3,7 +3,6 @@ import { ChevronLeft, ChevronRight, CalendarDays, Check } from "lucide-react";
 import { SiGooglecalendar } from "react-icons/si";
 
 const CalendarHeader = ({ currentDate, onPrevWeek, onNextWeek, onToday }) => {
-  // Hiển thị tháng năm dựa trên currentDate
   const monthYear = currentDate.toLocaleDateString("vi-VN", {
     month: "long",
     year: "numeric",
