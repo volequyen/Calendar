@@ -4,9 +4,12 @@ import BlueButton from "../../components/BlueButton";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/authProvider";
 import { SiGooglecalendar } from "react-icons/si";
+import registerApi from "../../apis/register";
 
 function Register() {
-    const { register } = useContext(AuthContext);
+    // Sửa lỗi: Đảm bảo bạn đang sử dụng đúng tên hàm từ AuthContext
+    const { login } = useContext(AuthContext); // Thay "register" bằng "login" hoặc tên hàm đúng trong context
+
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
@@ -50,9 +53,10 @@ function Register() {
         setLoading(true);
         setError((prev) => ({ ...prev, general: "" }));
         try {
-            // TODO: Gọi API đăng ký ở đây
+            const response = await registerApi(email, password);
             setTimeout(() => {
-                register(email, "fake_user_id");
+                // Sử dụng hàm "login" từ context thay vì "register"
+                login(email, response.id);
                 navigate("/");
             }, 1000);
         } catch (error) {

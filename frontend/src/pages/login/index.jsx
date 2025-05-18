@@ -2,7 +2,6 @@ import React, { useContext, useState } from "react";
 import InputBox from "../../components/InputBox";
 import BlueButton from "../../components/BlueButton";
 import { Link, useNavigate } from "react-router-dom";
-import { userAuthStore } from "../../store/userAuthStore";
 import { AuthContext } from "../../context/authProvider";
 import { SiGooglecalendar } from "react-icons/si";
 import { loginApi } from "../../apis/login";
@@ -22,7 +21,7 @@ function Login() {
     setError("");
     try {
       const response = await loginApi(email, password);
-      
+
       const { email: responseEmail, user_id } = response;
 
       if (user_id === "null" || responseEmail === "null") {

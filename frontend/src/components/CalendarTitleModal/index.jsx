@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { format } from 'date-fns';
+import { format, addMinutes, addHours, addDays, parse } from 'date-fns';
 
 const CalendarTitleModal = ({
   selectedDate,
@@ -12,16 +12,52 @@ const CalendarTitleModal = ({
   handleDetailsConfirm,
   onClose
 }) => {
-  const reminderOptions = ['15 minutes before', '30 minutes before', '1 hour before', '1 day before'];
+  const reminderOptions = [
+    { label: '15 minutes before', value: 15, unit: 'minutes' },
+    { label: '30 minutes before', value: 30, unit: 'minutes' },
+    { label: '1 hour before', value: 1, unit: 'hours' },
+    { label: '1 day before', value: 1, unit: 'days' }
+  ];
 
-  const handleReminderToggle = useCallback((reminder) => {
+  const parseTimeString = (timeStr) => {
+    const [time, period] = timeStr.split(' ');
+    const [hours, minutes] = time.split(':');
+    let hour = parseInt(hours);
+    if (period.toLowerCase() === 'pm' && hour < 12) hour += 12;
+    if (period.toLowerCase() === 'am' && hour === 12) hour = 0;
+    return { hour, minute: parseInt(minutes) };
+  };
+
+  const calculateReminderTime = (startTime, option) => {
+    if (!selectedDate || !startTime) return null;
+
+    const { hour, minute } = parseTimeString(startTime);
+    const startDateTime = new Date(selectedDate);
+    startDateTime.setHours(hour, minute, 0, 0);
+
+    switch (option.unit) {
+      case 'minutes':
+        return addMinutes(startDateTime, -option.value);
+      case 'hours':
+        return addHours(startDateTime, -option.value);
+      case 'days':
+        return addDays(startDateTime, -option.value);
+      default:
+        return startDateTime;
+    }
+  };
+
+  const handleReminderToggle = useCallback((option) => {
     setAppointmentDetails(prev => {
-      const reminders = prev.reminders.includes(reminder)
-        ? prev.reminders.filter(r => r !== reminder)
-        : [...prev.reminders, reminder];
+      const reminderTime = calculateReminderTime(selectedStartTime, option);
+      if (!reminderTime) return prev;
+
+      const reminders = prev.reminders.some(r => r.getTime() === reminderTime.getTime())
+        ? prev.reminders.filter(r => r.getTime() !== reminderTime.getTime())
+        : [...prev.reminders, reminderTime];
       return { ...prev, reminders };
     });
-  }, [setAppointmentDetails]);
+  }, [setAppointmentDetails, selectedStartTime, selectedDate]);
 
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -33,8 +69,8 @@ const CalendarTitleModal = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div 
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm" 
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
       <div className="relative bg-white rounded-lg shadow-xl w-full max-w-2xl p-6">
@@ -80,17 +116,22 @@ const CalendarTitleModal = ({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Reminders</label>
               <div className="space-y-2">
-                {reminderOptions.map(option => (
-                  <label key={option} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={appointmentDetails.reminders.includes(option)}
-                      onChange={() => handleReminderToggle(option)}
-                      className="h-4 w-4 text-green-500 focus:ring-green-500 border-gray-300 rounded"
-                    />
-                    <span className="ml-2 text-sm text-gray-600">{option}</span>
-                  </label>
-                ))}
+                {reminderOptions.map(option => {
+                  const reminderTime = calculateReminderTime(selectedStartTime, option);
+                  return (
+                    <label key={option.label} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={reminderTime && appointmentDetails.reminders.some(r =>
+                          r.getTime() === reminderTime.getTime()
+                        )}
+                        onChange={() => handleReminderToggle(option)}
+                        className="h-4 w-4 text-green-500 focus:ring-green-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-600">{option.label}</span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
 

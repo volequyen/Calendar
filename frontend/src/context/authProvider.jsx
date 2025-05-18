@@ -30,6 +30,15 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const getEmail = () => {
+        try {
+            return auth?.email || null;
+        } catch (error) {
+            console.error('Error getting email:', error);
+            return null;
+        }
+    };
+
     const login = (email, userId) => {
         try {
             const authData = {
@@ -63,7 +72,8 @@ export const AuthProvider = ({ children }) => {
         setAuth,
         login,
         logout,
-        getUserId
+        getUserId,
+        getEmail
     };
 
     return (

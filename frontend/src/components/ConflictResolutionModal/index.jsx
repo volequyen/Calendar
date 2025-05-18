@@ -1,7 +1,7 @@
 import React from 'react';
 import { format } from 'date-fns';
 
-const ConflictResolutionModal = ({ 
+const ConflictResolutionModal = ({
   conflictAppointment,
   onReplace,
   onKeepExisting,
@@ -9,10 +9,19 @@ const ConflictResolutionModal = ({
   onJoinGroupMeeting,
   onClose
 }) => {
+  // Convert time strings to Date objects if needed
+  const startTime = conflictAppointment.startTime instanceof Date
+    ? conflictAppointment.startTime
+    : new Date(conflictAppointment.startTime);
+
+  const endTime = conflictAppointment.endTime instanceof Date
+    ? conflictAppointment.endTime
+    : new Date(conflictAppointment.endTime);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div 
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm" 
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
       <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md p-6">
@@ -23,20 +32,20 @@ const ConflictResolutionModal = ({
         >
           ×
         </button>
-        
+
         <div className="space-y-4">
           <h3 className="text-xl font-semibold text-gray-800 mb-2">Schedule Conflict</h3>
           <p className="text-sm text-gray-600">
             You already have an appointment scheduled during this time:
           </p>
-          
+
           <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
             <p className="font-medium text-gray-800">{conflictAppointment.name}</p>
             <p className="text-sm text-gray-600 mt-1">
-              {format(conflictAppointment.start_time, 'EEEE, MMMM d, yyyy')}
+              {format(startTime, 'EEEE, MMMM d, yyyy')}
             </p>
             <p className="text-sm text-gray-600">
-              {format(conflictAppointment.start_time, 'h:mm a')} - {format(conflictAppointment.end_time, 'h:mm a')}
+              {format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')}
             </p>
             <p className="text-sm text-gray-600">{conflictAppointment.location}</p>
             {conflictAppointment.is_group_meeting && (

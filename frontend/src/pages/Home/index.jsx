@@ -1,6 +1,7 @@
 import CalendarHeader from "../../components/Header/Header";
-import { useState } from "react";
+import { useState, useContext } from "react";
 import WeekCalendar from "../../components/Calendar/";
+import { AuthContext } from "../../context/authProvider";
 
 
 const Home = () => {
@@ -13,6 +14,8 @@ const Home = () => {
     sunday.setHours(0, 0, 0, 0);
     return sunday;
   });
+
+  const { logout } = useContext(AuthContext);
 
   const prevWeek = () => {
     setCurrentDate((date) => {
@@ -47,6 +50,7 @@ const Home = () => {
         onPrevWeek={prevWeek}
         onNextWeek={nextWeek}
         onToday={goToday}
+        onLogout={logout}
       />
       <WeekCalendar currentDate={currentDate} />
     </div>
