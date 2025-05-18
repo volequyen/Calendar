@@ -4,10 +4,10 @@ import WeekCalendar from "../../components/Calendar/";
 
 
 const Home = () => {
-  
- const [currentDate, setCurrentDate] = useState(() => {
+
+  const [currentDate, setCurrentDate] = useState(() => {
     const now = new Date();
-    const day = now.getDay(); 
+    const day = now.getDay();
     const sunday = new Date(now);
     sunday.setDate(now.getDate() - day);
     sunday.setHours(0, 0, 0, 0);
@@ -18,7 +18,7 @@ const Home = () => {
     setCurrentDate((date) => {
       const newDate = new Date(date);
       newDate.setDate(newDate.getDate() - 7);
-       console.log("Prev Week Date:", newDate);
+      console.log("Prev Week Date:", newDate);
       return newDate;
     });
   };
