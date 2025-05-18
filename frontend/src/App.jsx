@@ -1,23 +1,13 @@
-import { useState } from 'react'
-import './App.css'
-import { BrowserRouter as Router, Routes, Route} from 'react-router-dom'
-import { publicRoutes } from './routers'
+import { RouterProvider } from "react-router-dom";
+import { AuthProvider } from "./context/authProvider";
+import router from "./routers";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <Router>
-      <div className='App'>
-         <Routes>
-              {publicRoutes.map((route, index)=> {
-                  const Page = route.componet;
-                  return <Route key={index} path={route.path} element={<Page/>}/>;
-              })}
-         </Routes>
-      </div>
-    </Router>
-  )
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
+  );
 }
 
-export default App
+export default App;
