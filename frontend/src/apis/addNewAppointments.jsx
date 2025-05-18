@@ -3,9 +3,15 @@ import { toLocalISOString } from "../ultils/changeTime";
 
 export const addNewAppointmentsApi = async (appointment, user_id) => {
     console.log("Sending appointment data:", appointment);
+    const participants = appointment.invitedUsers.split(",");
+    const participantsId = participants.map(participant => {
+        return {
+            id: participant
+        }
+    });
     try {
         if (appointment.invitedUsers) {
-            const response = await axiosPrivate.post('/appointments', {
+            const dataSend = {
                 name: appointment.name,
                 startTime: appointment.startTime,
                 endTime: appointment.endTime,
@@ -15,9 +21,11 @@ export const addNewAppointmentsApi = async (appointment, user_id) => {
                 reminders: appointment.reminders.map(reminder => ({
                     reminderTime: reminder instanceof Date ? toLocalISOString(reminder) : reminder
                 })),
-                participants: appointment.invitedUsers || ""
-            });
-            console.log("API response:", response.data);
+                participants: participantsId
+            }
+            console.log("Data send:", dataSend);
+            const response = await axiosPrivate.post('/appointments', dataSend);
+            // console.log("API response:", response.data);
             return response.data;
         }
         else {

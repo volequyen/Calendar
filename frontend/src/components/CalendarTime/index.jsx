@@ -407,20 +407,17 @@ const DateTimePicker = ({ open, onClose, onSelect, preselectedDate, preselectedS
     return conflict || null;
   };
 
-  const isSameGroupMeeting = async (appointment1, appointment2, userId) => {
+  const isSameGroupMeeting = async (appointment2, userId) => {
     try {
-      // Nếu không phải cả hai đều là group meeting thì không cần kiểm tra
-      if (!appointment1.is_group_meeting || !appointment2.is_group_meeting) {
-        return false;
-      }
-
-      const response = await checkGroupSimilarApi({
-        name: appointment1.name,
-        startTime: appointment1.start_time,
-        endTime: appointment1.end_time
+      const data = await checkGroupSimilarApi({
+        name: appointment2.name,
+        startTime: appointment2.start_time,
+        endTime: appointment2.end_time
       }, userId);
-
-      return true;
+      if (data.hasSimilarMeetings) {
+        return data.similarMeetings.id;
+      }
+      return false;
     } catch (error) {
       console.error("Error checking group similarity:", error);
       return false;
@@ -469,13 +466,12 @@ const DateTimePicker = ({ open, onClose, onSelect, preselectedDate, preselectedS
     const conflict = hasConflict(startDateTime, endDateTime);
     if (conflict) {
       console.log("Found conflict:", conflict);
-      const isSameGroup = await isSameGroupMeeting(conflict, {
+      const isSameGroup = await isSameGroupMeeting( {
         is_group_meeting: appointmentDetails.is_group_meeting,
         name: appointmentDetails.name,
         start_time: startDateTime,
         end_time: endDateTime
       }, user_id);
-
       setConflictResolution({
         show: true,
         conflictAppointment: conflict,
@@ -594,7 +590,7 @@ const DateTimePicker = ({ open, onClose, onSelect, preselectedDate, preselectedS
       console.log("Appointments refreshed");
 
       if (onSelect) onSelect(updatedAppointment);
-      showSuccess("Appointment replaced successfully!");
+      showSuccess("Appointment replaced successfully!"); a
       reset();
     } catch (error) {
       console.error("Error replacing appointment:", error);
