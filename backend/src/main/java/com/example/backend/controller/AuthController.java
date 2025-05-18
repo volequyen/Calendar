@@ -74,4 +74,16 @@ public class AuthController {
         
         return ResponseEntity.ok(response);
     }
-}
+
+    @PostMapping("/logout")
+    public ResponseEntity<AuthResponse> logout(@RequestBody AuthRequest request) {
+        AuthResponse response = new AuthResponse(
+            null,
+            null,
+            true,
+            "Logout successful"
+        );
+    
+        return ResponseEntity.ok(response);
+    }
+}   
