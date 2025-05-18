@@ -35,9 +35,6 @@ const ConflictResolutionModal = ({
 
         <div className="space-y-4">
           <h3 className="text-xl font-semibold text-gray-800 mb-2">Schedule Conflict</h3>
-          <p className="text-sm text-gray-600">
-            You already have an appointment scheduled during this time:
-          </p>
 
           <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
             <p className="font-medium text-gray-800">{conflictAppointment.name}</p>
@@ -48,14 +45,14 @@ const ConflictResolutionModal = ({
               {format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')}
             </p>
             <p className="text-sm text-gray-600">{conflictAppointment.location}</p>
-            {conflictAppointment.is_group_meeting && (
+            {onJoinGroupMeeting != null && (
               <span className="inline-block mt-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                 Group Meeting
               </span>
             )}
           </div>
 
-          {conflictAppointment.is_group_meeting && (
+          {onJoinGroupMeeting != null && (
             <div className="mt-4">
               <p className="text-sm text-gray-600 mb-2">
                 This is a group meeting. Would you like to join instead of creating a new one?

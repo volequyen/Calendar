@@ -2,7 +2,6 @@ import { axiosPrivate } from "./axios"
 import { toLocalISOString } from "../ultils/changeTime";
 
 export const addNewAppointmentsApi = async (appointment, user_id) => {
-    console.log("Sending appointment data:", appointment);
     const participants = appointment.invitedUsers.split(",");
     const participantsId = participants.map(participant => {
         return {

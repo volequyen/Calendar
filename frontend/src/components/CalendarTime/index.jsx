@@ -8,6 +8,8 @@ import { AuthContext } from '../../context/authProvider';
 import { useContext } from 'react';
 import useAppointmentsStore from '../../store/appointmentsStore';
 import { toLocalISOString } from '../../ultils/changeTime';
+import { checkGroupSimilarApi } from '../../apis/checkGroupSimilar';
+import { joinGroupMeetingApi } from '../../apis/joinGroupMeeting';
 const DateTimePicker = ({ open, onClose, onSelect, preselectedDate, preselectedStartTime, events = [] }) => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [customStartTime, setCustomStartTime] = useState('');
@@ -16,7 +18,8 @@ const DateTimePicker = ({ open, onClose, onSelect, preselectedDate, preselectedS
   const [error, setError] = useState("");
   const { getUserId } = useContext(AuthContext);
   const user_id = getUserId();
-
+  const { getEmail } = useContext(AuthContext);
+  const email = getEmail();
   // Use appointments store instead of local state
   const { appointments, fetchAppointments, addAppointment, updateAppointment, deleteAppointment } = useAppointmentsStore();
 
@@ -27,6 +30,7 @@ const DateTimePicker = ({ open, onClose, onSelect, preselectedDate, preselectedS
     invitedUsers: "",
     is_group_meeting: false
   });
+
   const [successMessage, setSuccessMessage] = useState("");
   const [conflictResolution, setConflictResolution] = useState({
     show: false,
@@ -368,7 +372,6 @@ const DateTimePicker = ({ open, onClose, onSelect, preselectedDate, preselectedS
       endTime: apt.endTime
     })));
     console.log("Currently replacing appointment:", appointmentBeingReplaced);
-
     const conflict = appointments.find(appointment => {
       // Nếu đây là sự kiện đang được thay thế, bỏ qua kiểm tra xung đột
       if (appointmentBeingReplaced && appointment.id === appointmentBeingReplaced.id) {
@@ -411,11 +414,11 @@ const DateTimePicker = ({ open, onClose, onSelect, preselectedDate, preselectedS
     try {
       const data = await checkGroupSimilarApi({
         name: appointment2.name,
-        startTime: appointment2.start_time,
-        endTime: appointment2.end_time
+        startTime: appointment2.startTime,
+        endTime: appointment2.endTime
       }, userId);
       if (data.hasSimilarMeetings) {
-        return data.similarMeetings.id;
+        return data.similarMeetings[0];
       }
       return false;
     } catch (error) {
@@ -464,14 +467,9 @@ const DateTimePicker = ({ open, onClose, onSelect, preselectedDate, preselectedS
 
     // Check for conflicts
     const conflict = hasConflict(startDateTime, endDateTime);
+    console.log("Conflict:", conflict);
     if (conflict) {
-      console.log("Found conflict:", conflict);
-      const isSameGroup = await isSameGroupMeeting( {
-        is_group_meeting: appointmentDetails.is_group_meeting,
-        name: appointmentDetails.name,
-        start_time: startDateTime,
-        end_time: endDateTime
-      }, user_id);
+
       setConflictResolution({
         show: true,
         conflictAppointment: conflict,
@@ -480,10 +478,11 @@ const DateTimePicker = ({ open, onClose, onSelect, preselectedDate, preselectedS
           endTime: endDateTime,
           ...appointmentDetails
         },
-        isSameGroup
+        isSameGroup: false
       });
       return;
     }
+
 
     // If no conflicts, proceed to next step
     setStep('details');
@@ -522,6 +521,17 @@ const DateTimePicker = ({ open, onClose, onSelect, preselectedDate, preselectedS
         invitedUsers: appointmentDetails.invitedUsers || "",
         is_group_meeting: appointmentDetails.is_group_meeting || false
       };
+      const isSameGroup = await isSameGroupMeeting(newAppointment, user_id);
+      console.log("Is same group:", isSameGroup);
+      if (isSameGroup) {
+        setConflictResolution({
+          show: true,
+          conflictAppointment: isSameGroup,
+          newAppointment: newAppointment,
+          isSameGroup: true
+        });
+        return;
+      }
 
       console.log("New appointment object:", newAppointment);
       console.log("User ID:", user_id);
@@ -600,33 +610,21 @@ const DateTimePicker = ({ open, onClose, onSelect, preselectedDate, preselectedS
 
   // Sửa hàm handleJoinGroupMeeting để đảm bảo cập nhật UI
   const handleJoinGroupMeeting = useCallback(async () => {
-    const { conflictAppointment, newAppointment } = conflictResolution;
-
-    if (!newAppointment.name || newAppointment.name === "New Appointment") {
-      setStep('details');
-      setConflictResolution(prev => ({ ...prev, show: false }));
-      return;
-    }
-
-    const updatedAppointments = appointments.map(app => {
-      if (app.id === conflictAppointment.id) {
-        const updatedInvites = [
-          ...new Set([...app.invited_users, ...newAppointment.invited_users])
-        ];
-        return {
-          ...app,
-          invited_users: updatedInvites
-        };
-      }
-      return app;
-    });
-
-    await updateAppointment(updatedAppointments, user_id);
+    const { conflictAppointment } = conflictResolution;
+    console.log("Joining group meeting:", conflictAppointment);
+    await joinGroupMeetingApi(conflictAppointment.id, user_id);
+    conflictAppointment.invitedUsers = conflictAppointment.participants.map(participant => participant.id);
+    conflictAppointment.invitedUsers.push(user_id);
+    conflictAppointment.invitedUsers = conflictAppointment.participants
+      .map(participant => participant.id)
+      .join(',');
+    await addAppointment(conflictAppointment, user_id);
+    console.log("Appointment added successfully");
     await fetchAppointments(user_id);
     if (onSelect) onSelect(conflictAppointment);
     showSuccess("You've joined the group meeting!");
     reset();
-  }, [conflictResolution, appointments, onSelect, showSuccess, reset, updateAppointment, user_id, fetchAppointments]);
+  }, [conflictResolution, onSelect, showSuccess, reset, user_id, fetchAppointments]);
 
   const handleKeepExisting = useCallback(() => {
     reset();
